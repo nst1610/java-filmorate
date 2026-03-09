@@ -21,6 +21,9 @@ public class UserService {
 
     public User addUser(User user) {
         setCorrectId(user);
+        if (user.getName() == null) {
+            user.setName(user.getLogin());
+        }
         users.put(user.getId(), user);
         log.info("User added: id={}, login={}", user.getId(), user.getLogin());
         return user;
