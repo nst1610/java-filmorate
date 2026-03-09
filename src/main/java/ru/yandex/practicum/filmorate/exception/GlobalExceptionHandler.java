@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -26,6 +27,13 @@ public class GlobalExceptionHandler {
             .forEach(error -> errors.put(error.getObjectName(), error.getDefaultMessage()));
         log.warn("Validation failed: {}", errors);
         return errors;
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, String> handleInvalidBodyException(HttpMessageNotReadableException e) {
+        log.warn("Request body parse failed: {}", e.getMessage());
+        return Map.of("error", "Request body is invalid or empty.");
     }
 
     @ExceptionHandler({InvalidFilmDataException.class, InvalidUserDataException.class})
