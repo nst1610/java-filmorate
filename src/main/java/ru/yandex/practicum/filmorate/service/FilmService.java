@@ -1,0 +1,50 @@
+package ru.yandex.practicum.filmorate.service;
+
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.exception.InvalidFilmDataException;
+import ru.yandex.practicum.filmorate.model.Film;
+
+@Service
+public class FilmService {
+    private final Map<Long, Film> films = new HashMap<>();
+    private Long currentId = 1L;
+
+    public Collection<Film> getFilms() {
+        return films.values();
+    }
+
+    public Film addFilm(Film film) {
+        setCorrectId(film);
+        films.put(film.getId(), film);
+        return film;
+    }
+
+    public Film updateFilm(Film film) {
+        if (film.getId() == null) {
+            throw new InvalidFilmDataException("Film id is empty.");
+        }
+        if (!films.containsKey(film.getId())) {
+            throw new NoSuchElementException("Film with id " + film.getId() + " does not exist.");
+        }
+        films.put(film.getId(), film);
+        return film;
+    }
+
+    private void setCorrectId(Film film) {
+        if (film.getId() == null) {
+            film.setId(currentId++);
+        } else if (films.containsKey(film.getId())) {
+            throw new InvalidFilmDataException("Film id " + film.getId() + " already exists.");
+        } else if (film.getId() < currentId) {
+            throw new InvalidFilmDataException(
+                "Film id cannot be less or equals than the current maximum value " + (currentId - 1)
+            );
+        } else if (film.getId() > currentId) {
+            currentId = film.getId();
+        }
+    }
+}
