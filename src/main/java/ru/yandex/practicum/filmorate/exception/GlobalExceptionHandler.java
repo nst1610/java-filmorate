@@ -41,4 +41,11 @@ public class GlobalExceptionHandler {
         log.warn("Entity not found: {}", e.getMessage());
         return Map.of("error", e.getMessage());
     }
+
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Map<String, String> handleInternalServerError(Exception e) {
+        log.error("Unexpected server error", e);
+        return Map.of("error", "Internal server error.");
+    }
 }
