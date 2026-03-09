@@ -16,6 +16,7 @@ public class FilmService {
     private Long currentId = 1L;
 
     public Collection<Film> getFilms() {
+        log.info("Get all films, size={}", films.size());
         return films.values();
     }
 

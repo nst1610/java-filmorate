@@ -16,14 +16,13 @@ public class UserService {
     private Long currentId = 1L;
 
     public Collection<User> getUsers() {
+        log.info("Get all users, size={}", users.size());
         return users.values();
     }
 
     public User addUser(User user) {
         setCorrectId(user);
-        if (user.getName() == null) {
-            user.setName(user.getLogin());
-        }
+        setNameIfBlank(user);
         users.put(user.getId(), user);
         log.info("User added: id={}, login={}", user.getId(), user.getLogin());
         return user;
@@ -38,6 +37,7 @@ public class UserService {
             log.warn("User update failed: user with id {} does not exist", user.getId());
             throw new NoSuchElementException("User with id " + user.getId() + " does not exist.");
         }
+        setNameIfBlank(user);
         users.put(user.getId(), user);
         log.info("User updated: id={}, login={}", user.getId(), user.getLogin());
         return user;
@@ -60,6 +60,12 @@ public class UserService {
             );
         } else if (user.getId() > currentId) {
             currentId = user.getId();
+        }
+    }
+
+    private void setNameIfBlank(User user) {
+        if (user.getName() == null || user.getName().isBlank()) {
+            user.setName(user.getLogin());
         }
     }
 }

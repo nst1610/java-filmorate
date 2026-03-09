@@ -31,6 +31,6 @@ public class Film {
         if (releaseDate == null) {
             return false;
         }
-        return !releaseDate.isBefore(LocalDate.of(1895, 12, 28));
+        return releaseDate.isAfter(LocalDate.of(1895, 12, 27));
     }
 }
