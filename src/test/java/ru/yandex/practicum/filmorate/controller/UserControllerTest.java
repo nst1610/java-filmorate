@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,9 @@ class UserControllerTest {
     @MockBean
     private UserController userController;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @Test
     void testReturnAllUsers() throws Exception {
         User user = createUser(1L);
@@ -43,14 +47,7 @@ class UserControllerTest {
         when(userController.addUser(any(User.class))).thenReturn(user);
         mockMvc.perform(post("/users")
                 .contentType(APPLICATION_JSON)
-                .content("""
-                    {
-                      "email": "user@test.com",
-                      "login": "user",
-                      "name": "name",
-                      "birthday": "2000-01-01"
-                    }
-                    """))
+                .content(objectMapper.writeValueAsString(createUser(1L))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.email").value("user@test.com"));

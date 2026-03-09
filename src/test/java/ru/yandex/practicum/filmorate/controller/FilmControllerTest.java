@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,9 @@ class FilmControllerTest {
     @MockBean
     private FilmController filmController;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @Test
     void testReturnAllFilms() throws Exception {
         Film film = createFilm(1L);
@@ -43,14 +47,7 @@ class FilmControllerTest {
         when(filmController.addFilm(any(Film.class))).thenReturn(film);
         mockMvc.perform(post("/films")
                 .contentType(APPLICATION_JSON)
-                .content("""
-                    {
-                      "name": "Film",
-                      "description": "Film description",
-                      "releaseDate": "2010-07-16",
-                      "duration": 120
-                    }
-                    """))
+                .content(objectMapper.writeValueAsString(createFilm(1L))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.name").value("Film"));
