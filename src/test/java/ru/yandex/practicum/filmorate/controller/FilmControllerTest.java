@@ -1,12 +1,15 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -42,6 +45,19 @@ class FilmControllerTest {
     }
 
     @Test
+    void testReturnFilmById() throws Exception {
+        Film film = createFilm(1L);
+        when(filmController.getFilmById(1L)).thenReturn(film);
+
+        mockMvc.perform(get("/films/1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(1))
+            .andExpect(jsonPath("$.name").value("Film"));
+
+        verify(filmController).getFilmById(1L);
+    }
+
+    @Test
     void testCreateFilmWhenBodyValid() throws Exception {
         Film film = createFilm(1L);
         when(filmController.addFilm(any(Film.class))).thenReturn(film);
@@ -70,6 +86,38 @@ class FilmControllerTest {
                 .content(""))
             .andExpect(status().isBadRequest());
         verify(filmController, never()).addFilm(any(Film.class));
+    }
+
+    @Test
+    void testAddLike() throws Exception {
+        doNothing().when(filmController).addLike(1L, 2L);
+
+        mockMvc.perform(put("/films/1/like/2"))
+            .andExpect(status().isOk());
+
+        verify(filmController).addLike(1L, 2L);
+    }
+
+    @Test
+    void testRemoveLike() throws Exception {
+        doNothing().when(filmController).removeLike(1L, 2L);
+
+        mockMvc.perform(delete("/films/1/like/2"))
+            .andExpect(status().isOk());
+
+        verify(filmController).removeLike(1L, 2L);
+    }
+
+    @Test
+    void testGetPopularFilms() throws Exception {
+        when(filmController.getPopularFilms(1)).thenReturn(List.of(createFilm(1L)));
+
+        mockMvc.perform(get("/films/popular").param("count", "1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].id").value(1))
+            .andExpect(jsonPath("$[0].name").value("Film"));
+
+        verify(filmController).getPopularFilms(1);
     }
 
     private Film createFilm(Long id) {

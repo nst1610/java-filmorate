@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.storage;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -22,9 +23,20 @@ public class InMemoryUserStorage implements UserStorage {
     }
 
     @Override
+    public User getUserById(Long id) {
+        User user = users.get(id);
+        if (user == null) {
+            log.warn("User with id {} does not exist", id);
+            throw new NoSuchElementException("User with id " + id + " does not exist.");
+        }
+        return user;
+    }
+
+    @Override
     public User addUser(User user) {
         setCorrectId(user);
         setNameIfBlank(user);
+        initializeFriends(user);
         users.put(user.getId(), user);
         log.info("User added: id={}, login={}", user.getId(), user.getLogin());
         return user;
@@ -40,7 +52,9 @@ public class InMemoryUserStorage implements UserStorage {
             log.warn("User update failed: user with id {} does not exist", user.getId());
             throw new NoSuchElementException("User with id " + user.getId() + " does not exist.");
         }
+        User existingUser = users.get(user.getId());
         setNameIfBlank(user);
+        user.setFriends(new HashSet<>(existingUser.getFriends()));
         users.put(user.getId(), user);
         log.info("User updated: id={}, login={}", user.getId(), user.getLogin());
         return user;
@@ -62,13 +76,21 @@ public class InMemoryUserStorage implements UserStorage {
                 "User id cannot be less or equals than the current maximum value " + (currentId - 1)
             );
         } else if (user.getId() > currentId) {
-            currentId = user.getId();
+            currentId = user.getId() + 1;
         }
     }
 
     private void setNameIfBlank(User user) {
         if (user.getName() == null || user.getName().isBlank()) {
             user.setName(user.getLogin());
+        }
+    }
+
+    private void initializeFriends(User user) {
+        if (user.getFriends() == null) {
+            user.setFriends(new HashSet<>());
+        } else {
+            user.setFriends(new HashSet<>(user.getFriends()));
         }
     }
 }
