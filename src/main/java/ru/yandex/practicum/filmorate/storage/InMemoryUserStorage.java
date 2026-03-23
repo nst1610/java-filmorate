@@ -1,10 +1,10 @@
 package ru.yandex.practicum.filmorate.storage;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.InvalidUserDataException;
@@ -23,20 +23,19 @@ public class InMemoryUserStorage implements UserStorage {
     }
 
     @Override
-    public User getUserById(Long id) {
+    public Optional<User> getUserById(Long id) {
         User user = users.get(id);
         if (user == null) {
             log.warn("User with id {} does not exist", id);
-            throw new NoSuchElementException("User with id " + id + " does not exist.");
         }
-        return user;
+        return Optional.ofNullable(user);
     }
 
     @Override
     public User addUser(User user) {
         setCorrectId(user);
         setNameIfBlank(user);
-        initializeFriends(user);
+        user.setFriends(new HashSet<>());
         users.put(user.getId(), user);
         log.info("User added: id={}, login={}", user.getId(), user.getLogin());
         return user;
@@ -44,14 +43,6 @@ public class InMemoryUserStorage implements UserStorage {
 
     @Override
     public User updateUser(User user) {
-        if (user.getId() == null) {
-            log.warn("User update failed: id is empty");
-            throw new InvalidUserDataException("User id is empty.");
-        }
-        if (!users.containsKey(user.getId())) {
-            log.warn("User update failed: user with id {} does not exist", user.getId());
-            throw new NoSuchElementException("User with id " + user.getId() + " does not exist.");
-        }
         User existingUser = users.get(user.getId());
         setNameIfBlank(user);
         user.setFriends(new HashSet<>(existingUser.getFriends()));
@@ -83,14 +74,6 @@ public class InMemoryUserStorage implements UserStorage {
     private void setNameIfBlank(User user) {
         if (user.getName() == null || user.getName().isBlank()) {
             user.setName(user.getLogin());
-        }
-    }
-
-    private void initializeFriends(User user) {
-        if (user.getFriends() == null) {
-            user.setFriends(new HashSet<>());
-        } else {
-            user.setFriends(new HashSet<>(user.getFriends()));
         }
     }
 }
