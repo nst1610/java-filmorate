@@ -1,12 +1,15 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -42,6 +45,19 @@ class UserControllerTest {
     }
 
     @Test
+    void testReturnUserById() throws Exception {
+        User user = createUser(1L);
+        when(userController.getUserById(1L)).thenReturn(user);
+
+        mockMvc.perform(get("/users/1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(1))
+            .andExpect(jsonPath("$.email").value("user@test.com"));
+
+        verify(userController).getUserById(1L);
+    }
+
+    @Test
     void testCreateUserWhenBodyValid() throws Exception {
         User user = createUser(1L);
         when(userController.addUser(any(User.class))).thenReturn(user);
@@ -70,6 +86,39 @@ class UserControllerTest {
                 .content(""))
             .andExpect(status().isBadRequest());
         verify(userController, never()).addUser(any(User.class));
+    }
+
+    @Test
+    void testAddFriend() throws Exception {
+        doNothing().when(userController).addFriend(1L, 2L);
+
+        mockMvc.perform(put("/users/1/friends/2"))
+            .andExpect(status().isOk());
+
+        verify(userController).addFriend(1L, 2L);
+    }
+
+    @Test
+    void testRemoveFriend() throws Exception {
+        doNothing().when(userController).removeFriend(1L, 2L);
+
+        mockMvc.perform(delete("/users/1/friends/2"))
+            .andExpect(status().isOk());
+
+        verify(userController).removeFriend(1L, 2L);
+    }
+
+    @Test
+    void testGetCommonFriends() throws Exception {
+        User commonFriend = createUser(3L);
+        when(userController.getCommonFriends(1L, 2L)).thenReturn(List.of(commonFriend));
+
+        mockMvc.perform(get("/users/1/friends/common/2"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].id").value(3))
+            .andExpect(jsonPath("$[0].login").value("user"));
+
+        verify(userController).getCommonFriends(1L, 2L);
     }
 
     private User createUser(Long id) {
