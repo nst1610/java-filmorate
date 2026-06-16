@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.storage;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -49,6 +50,31 @@ public class InMemoryUserStorage implements UserStorage {
         users.put(user.getId(), user);
         log.info("User updated: id={}, login={}", user.getId(), user.getLogin());
         return user;
+    }
+
+    @Override
+    public void addFriend(Long userId, Long friendId) {
+        users.get(userId).getFriends().add(friendId);
+    }
+
+    @Override
+    public void removeFriend(Long userId, Long friendId) {
+        users.get(userId).getFriends().remove(friendId);
+    }
+
+    @Override
+    public List<User> getFriends(Long userId) {
+        return users.get(userId).getFriends().stream()
+            .map(users::get)
+            .toList();
+    }
+
+    @Override
+    public List<User> getCommonFriends(Long userId, Long otherId) {
+        return users.get(userId).getFriends().stream()
+            .filter(friendId -> users.get(otherId).getFriends().contains(friendId))
+            .map(users::get)
+            .toList();
     }
 
     private void setCorrectId(User user) {

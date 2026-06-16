@@ -60,6 +60,16 @@ public class InMemoryFilmStorage implements FilmStorage {
         return film;
     }
 
+    @Override
+    public void addLike(Long filmId, Long userId) {
+        films.get(filmId).getLikes().add(userId);
+    }
+
+    @Override
+    public void removeLike(Long filmId, Long userId) {
+        films.get(filmId).getLikes().remove(userId);
+    }
+
     private void setCorrectId(Film film) {
         if (film.getId() == null) {
             film.setId(currentId++);

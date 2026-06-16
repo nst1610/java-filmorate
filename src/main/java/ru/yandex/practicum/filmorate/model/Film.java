@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
+import java.util.LinkedHashSet;
 import java.util.HashSet;
 import java.util.Set;
 import lombok.Data;
@@ -29,6 +30,8 @@ public class Film {
     private Integer duration;
 
     private Set<Long> likes = new HashSet<>();
+    private Set<Genre> genres = new LinkedHashSet<>();
+    private Mpa mpa;
 
     @AssertTrue(message = "Дата релиза не может быть раньше 28 декабря 1895 года")
     public boolean isReleaseDateValid() {

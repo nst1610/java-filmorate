@@ -4,7 +4,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.NoSuchElementException;
 import lombok.extern.slf4j.Slf4j;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.InvalidUserDataException;
 import ru.yandex.practicum.filmorate.model.User;
@@ -12,9 +12,12 @@ import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
 public class UserService {
     private final UserStorage userStorage;
+
+    public UserService(@Qualifier("userDbStorage") UserStorage userStorage) {
+        this.userStorage = userStorage;
+    }
 
     public Collection<User> getUsers() {
         log.info("Request to get all users");
@@ -43,39 +46,32 @@ public class UserService {
 
     public void addFriend(Long userId, Long friendId) {
         validateDifferentUsers(userId, friendId);
-        User user = findUserById(userId);
-        User friend = findUserById(friendId);
-        user.getFriends().add(friendId);
-        friend.getFriends().add(userId);
-        log.info("Users {} and {} are now friends", userId, friendId);
+        findUserById(userId);
+        findUserById(friendId);
+        userStorage.addFriend(userId, friendId);
+        log.info("User {} added user {} to friends", userId, friendId);
     }
 
     public void removeFriend(Long userId, Long friendId) {
         validateDifferentUsers(userId, friendId);
-        User user = findUserById(userId);
-        User friend = findUserById(friendId);
-        user.getFriends().remove(friendId);
-        friend.getFriends().remove(userId);
-        log.info("Users {} and {} are no longer friends", userId, friendId);
+        findUserById(userId);
+        findUserById(friendId);
+        userStorage.removeFriend(userId, friendId);
+        log.info("User {} removed user {} from friends", userId, friendId);
     }
 
     public List<User> getFriends(Long userId) {
-        User user = findUserById(userId);
+        findUserById(userId);
         log.info("Request to get friends for user {}", userId);
-        return user.getFriends().stream()
-            .map(this::findUserById)
-            .toList();
+        return userStorage.getFriends(userId);
     }
 
     public List<User> getCommonFriends(Long userId, Long otherId) {
         validateDifferentUsers(userId, otherId);
-        User user = findUserById(userId);
-        User otherUser = findUserById(otherId);
+        findUserById(userId);
+        findUserById(otherId);
         log.info("Request to get common friends for users {} and {}", userId, otherId);
-        return user.getFriends().stream()
-            .filter(friendId -> otherUser.getFriends().contains(friendId))
-            .map(this::findUserById)
-            .toList();
+        return userStorage.getCommonFriends(userId, otherId);
     }
 
     private User findUserById(Long id) {
