@@ -20,24 +20,25 @@ class UserServiceTest {
     }
 
     @Test
-    void testAddFriendBidirectionally() {
+    void testAddFriendOneDirectionally() {
         User firstUser = userService.addUser(createUser("first@mail.test", "first"));
         User secondUser = userService.addUser(createUser("second@mail.test", "second"));
         userService.addFriend(firstUser.getId(), secondUser.getId());
         assertThat(userService.getFriends(firstUser.getId())).extracting(User::getId)
             .containsExactly(secondUser.getId());
-        assertThat(userService.getFriends(secondUser.getId())).extracting(User::getId)
-            .containsExactly(firstUser.getId());
+        assertThat(userService.getFriends(secondUser.getId())).isEmpty();
     }
 
     @Test
-    void testRemoveFriendBidirectionally() {
+    void testRemoveFriendOnlyFromSenderList() {
         User firstUser = userService.addUser(createUser("first@mail.test", "first"));
         User secondUser = userService.addUser(createUser("second@mail.test", "second"));
         userService.addFriend(firstUser.getId(), secondUser.getId());
+        userService.addFriend(secondUser.getId(), firstUser.getId());
         userService.removeFriend(firstUser.getId(), secondUser.getId());
         assertThat(userService.getFriends(firstUser.getId())).isEmpty();
-        assertThat(userService.getFriends(secondUser.getId())).isEmpty();
+        assertThat(userService.getFriends(secondUser.getId())).extracting(User::getId)
+            .containsExactly(firstUser.getId());
     }
 
     @Test
