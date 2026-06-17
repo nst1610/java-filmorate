@@ -63,7 +63,7 @@ public class UserDbStorage extends BaseRepository<User> implements UserStorage {
 
     @Override
     public Collection<User> getUsers() {
-        return enrichUsers(findMany(FIND_ALL_USERS_QUERY));
+        return findMany(FIND_ALL_USERS_QUERY);
     }
 
     @Override
@@ -73,7 +73,6 @@ public class UserDbStorage extends BaseRepository<User> implements UserStorage {
 
     @Override
     public User addUser(User user) {
-        normalizeName(user);
         user.setId(insert(
             INSERT_USER_QUERY,
             user.getEmail(),
@@ -87,7 +86,6 @@ public class UserDbStorage extends BaseRepository<User> implements UserStorage {
 
     @Override
     public User updateUser(User user) {
-        normalizeName(user);
         update(
             UPDATE_USER_QUERY,
             user.getEmail(),
@@ -127,20 +125,8 @@ public class UserDbStorage extends BaseRepository<User> implements UserStorage {
         return jdbc.queryForList(FIND_FRIEND_IDS_QUERY, Long.class, userId);
     }
 
-    private List<User> enrichUsers(List<User> users) {
-        return users.stream()
-            .map(this::enrichUser)
-            .toList();
-    }
-
     private User enrichUser(User user) {
         user.setFriends(new HashSet<>(getFriendIds(user.getId())));
         return user;
-    }
-
-    private void normalizeName(User user) {
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-        }
     }
 }

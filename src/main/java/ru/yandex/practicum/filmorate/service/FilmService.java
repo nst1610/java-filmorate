@@ -1,13 +1,17 @@
 package ru.yandex.practicum.filmorate.service;
 
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.InvalidFilmDataException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.GenreStorage;
 import ru.yandex.practicum.filmorate.storage.MpaStorage;
@@ -97,18 +101,21 @@ public class FilmService {
     }
 
     private void validateFilmData(Film film) {
-        if (film.getMpa() != null && film.getMpa().getId() != null) {
-            mpaStorage.getMpaById(film.getMpa().getId().longValue())
-                .orElseThrow(() -> new NoSuchElementException(
-                    "MPA rating with id " + film.getMpa().getId() + " does not exist."
-                ));
+        if (film.getMpa() == null || film.getMpa().getId() == null) {
+            throw new InvalidFilmDataException("MPA rating is required.");
         }
-        if (film.getGenres() == null) {
+        mpaStorage.getMpaById(film.getMpa().getId())
+            .orElseThrow(() -> new NoSuchElementException(
+                "MPA rating with id " + film.getMpa().getId() + " does not exist."
+            ));
+        if (film.getGenres() == null || film.getGenres().isEmpty()) {
             return;
         }
-        film.getGenres().forEach(genre -> genreStorage.getGenreById(genre.getId())
-            .orElseThrow(() -> new NoSuchElementException(
-                "Genre with id " + genre.getId() + " does not exist."
-            )));
+        Set<Long> genreIds = film.getGenres().stream().map(Genre::getId).collect(Collectors.toSet());
+        Collection<Genre> foundGenres = genreStorage.getGenresByIds(genreIds);
+        if (foundGenres.size() != genreIds.size()) {
+            throw new NoSuchElementException("One or more genres do not exist.");
+        }
+        film.setGenres(new LinkedHashSet<>(foundGenres));
     }
 }

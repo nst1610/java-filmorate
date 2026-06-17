@@ -1,18 +1,24 @@
 package ru.yandex.practicum.filmorate.storage.db;
 
 import java.sql.Date;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
-import ru.yandex.practicum.filmorate.storage.db.mapper.FilmRowMapper;
-import ru.yandex.practicum.filmorate.storage.db.mapper.GenreRowMapper;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.GenreStorage;
+import ru.yandex.practicum.filmorate.storage.db.mapper.FilmRowMapper;
 
 @Repository
 @Qualifier("filmDbStorage")
@@ -64,20 +70,18 @@ public class FilmDbStorage extends BaseRepository<Film> implements FilmStorage {
         KEY (film_id, genre_id)
         VALUES (?, ?)
         """;
-    private static final String FIND_FILM_GENRES_QUERY = """
-        SELECT g.id, g.name
-        FROM genres g
-        JOIN film_genres fg ON g.id = fg.genre_id
-        WHERE fg.film_id = ?
-        """;
-    private static final String FIND_FILM_LIKES_QUERY = """
-        SELECT user_id
+    private static final String FIND_FILM_LIKES_BY_FILM_IDS_QUERY = """
+        SELECT film_id, user_id
         FROM film_likes
-        WHERE film_id = ?
+        WHERE film_id IN (%s)
+        ORDER BY film_id, user_id
         """;
 
-    public FilmDbStorage(JdbcTemplate jdbcTemplate) {
+    private final GenreStorage genreStorage;
+
+    public FilmDbStorage(JdbcTemplate jdbcTemplate, @Qualifier("genreDbStorage") GenreStorage genreStorage) {
         super(jdbcTemplate, new FilmRowMapper());
+        this.genreStorage = genreStorage;
     }
 
     @Override
@@ -136,29 +140,71 @@ public class FilmDbStorage extends BaseRepository<Film> implements FilmStorage {
     }
 
     private void saveGenres(Film film) {
-        if (film.getGenres() == null) {
+        if (film.getGenres() == null || film.getGenres().isEmpty()) {
             return;
         }
-        for (Genre genre : film.getGenres()) {
-            update(INSERT_FILM_GENRE_QUERY, film.getId(), genre.getId());
-        }
+        List<Genre> genres = new ArrayList<>(film.getGenres());
+        jdbc.batchUpdate(
+            INSERT_FILM_GENRE_QUERY,
+            genres,
+            genres.size(),
+            (ps, genre) -> {
+                ps.setLong(1, film.getId());
+                ps.setLong(2, genre.getId());
+            }
+        );
     }
 
     private List<Film> enrichFilms(List<Film> films) {
-        return films.stream().map(this::enrichFilm).toList();
+        if (films.isEmpty()) {
+            return films;
+        }
+        enrichFilmsWithGenres(films);
+        enrichFilmsWithLikes(films);
+        return films;
     }
 
     private Film enrichFilm(Film film) {
-        film.setGenres(new LinkedHashSet<>(loadGenres(film.getId())));
-        film.setLikes(new java.util.HashSet<>(loadLikes(film.getId())));
-        return film;
+        return enrichFilms(new ArrayList<>(List.of(film))).getFirst();
     }
 
-    private List<Genre> loadGenres(Long filmId) {
-        return jdbc.query(FIND_FILM_GENRES_QUERY, new GenreRowMapper(), filmId);
+    private void enrichFilmsWithGenres(List<Film> films) {
+        List<Long> filmIds = new ArrayList<>();
+        for (Film film : films) {
+            filmIds.add(film.getId());
+        }
+        Map<Long, Set<Genre>> genresByFilmId = genreStorage.getGenresForFilms(filmIds);
+        for (Film film : films) {
+            film.setGenres(new LinkedHashSet<>(genresByFilmId.getOrDefault(film.getId(), Set.of())));
+        }
     }
 
-    private List<Long> loadLikes(Long filmId) {
-        return jdbc.queryForList(FIND_FILM_LIKES_QUERY, Long.class, filmId);
+    private void enrichFilmsWithLikes(List<Film> films) {
+        List<Long> filmIds = new ArrayList<>();
+        for (Film film : films) {
+            filmIds.add(film.getId());
+        }
+        Map<Long, Set<Long>> likesByFilmId = loadLikesByFilmIds(filmIds);
+        for (Film film : films) {
+            film.setLikes(new HashSet<>(likesByFilmId.getOrDefault(film.getId(), Set.of())));
+        }
+    }
+
+    private Map<Long, Set<Long>> loadLikesByFilmIds(List<Long> filmIds) {
+        Map<Long, Set<Long>> likesByFilmId = new HashMap<>();
+        if (filmIds.isEmpty()) {
+            return likesByFilmId;
+        }
+        String query = FIND_FILM_LIKES_BY_FILM_IDS_QUERY.formatted(buildPlaceholders(filmIds.size()));
+        jdbc.query(query, rs -> {
+            Long filmId = rs.getLong("film_id");
+            Long userId = rs.getLong("user_id");
+            likesByFilmId.computeIfAbsent(filmId, key -> new LinkedHashSet<>()).add(userId);
+        }, filmIds.toArray());
+        return likesByFilmId;
+    }
+
+    private String buildPlaceholders(int count) {
+        return String.join(", ", Collections.nCopies(count, "?"));
     }
 }

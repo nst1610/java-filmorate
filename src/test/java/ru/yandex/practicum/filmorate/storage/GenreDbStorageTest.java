@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.storage;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,5 +31,12 @@ class GenreDbStorageTest {
             .get()
             .extracting(Genre::getName)
             .isEqualTo("Комедия");
+    }
+
+    @Test
+    void testReturnGenresByIds() {
+        assertThat(genreStorage.getGenresByIds(List.of(1L, 3L)))
+            .extracting(Genre::getId)
+            .containsExactly(1L, 3L);
     }
 }

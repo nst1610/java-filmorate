@@ -30,6 +30,7 @@ public class UserService {
     }
 
     public User addUser(User user) {
+        normalizeName(user);
         log.info("Request to add user with login {}", user.getLogin());
         return userStorage.addUser(user);
     }
@@ -40,6 +41,7 @@ public class UserService {
             throw new InvalidUserDataException("User id is empty.");
         }
         findUserById(user.getId());
+        normalizeName(user);
         log.info("Request to update user with id {}", user.getId());
         return userStorage.updateUser(user);
     }
@@ -83,6 +85,12 @@ public class UserService {
         if (userId.equals(otherUserId)) {
             log.warn("User operation failed: ids must be different.");
             throw new InvalidUserDataException("Users must be different.");
+        }
+    }
+
+    private void normalizeName(User user) {
+        if (user.getName() == null || user.getName().isBlank()) {
+            user.setName(user.getLogin());
         }
     }
 }

@@ -16,11 +16,12 @@ import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Mpa;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.db.FilmDbStorage;
+import ru.yandex.practicum.filmorate.storage.db.GenreDbStorage;
 import ru.yandex.practicum.filmorate.storage.db.UserDbStorage;
 
 @JdbcTest
 @AutoConfigureTestDatabase
-@Import({FilmDbStorage.class, UserDbStorage.class})
+@Import({FilmDbStorage.class, GenreDbStorage.class, UserDbStorage.class})
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 class FilmDbStorageTest {
     private final FilmDbStorage filmStorage;
@@ -116,7 +117,7 @@ class FilmDbStorageTest {
 
     private Mpa mpa(Long id) {
         Mpa mpa = new Mpa();
-        mpa.setId(id.intValue());
+        mpa.setId(id);
         return mpa;
     }
 
